@@ -1,4 +1,5 @@
 class Transaction:
+
     def __init__(self, timestamp, from_user, to_user):
         self.timestamp = timestamp
         self.from_user = from_user
@@ -9,7 +10,34 @@ class Transaction:
         """
         Analyse your time complexity of this method.
         """
-        pass
+        value = 0
+        base = 31
+        TABLE_SIZE = 36**36
+
+        ALPH = "0123456789abcdefghijklmnopqrstuvwxyz"
+
+        data = str(self.timestamp) + "|" + self.from_user + "|" + self.to_user
+
+        for char in data:
+            value = (value * base + ord(char)) % TABLE_SIZE
+
+        sig_str = ""
+
+        while value > 0:
+            value, rem = divmod(value, 36)
+            sig_str = ALPH[rem] + sig_str
+
+        if sig_str == "":
+            sig_str = "0"
+        
+        if len(sig_str) < 36:
+            sig_str = ("0" * (36 - len(sig_str))) + sig_str
+        
+        self.signature = sig_str
+                
+                
+
+
 
 
 class ProcessingLine:
