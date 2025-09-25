@@ -11,7 +11,12 @@ class Transaction:
     
     def sign(self):
         """
-        Analyse your time complexity of this method.
+        :complexity:
+        Let n = len(from_user) + len(to_user) + digits(timestamp) + 2.
+        - Hash accumulation loop: O(n), one modular multiply/add per character.
+        - Base-36 conversion loop: at most 36 iterations (since value < 36^36) → O(1).
+        - Padding to fixed length: O(1).
+        Overall: O(n) time.
         """
         value = 0
         base = 31
@@ -46,51 +51,73 @@ class Transaction:
 class ProcessingLine:
     def __init__(self, critical_transaction):
         """
-        Analyse your time complexity of this method.
+        :complexity:
+            Best & Worst: O(1) – just field initialisation.
         """
-        self._critical_trans=critical_transaction
-        self._before_critical=LinkedStack()
-        self._after_critical=LinkedQueue()
-        self._it_created=False
+        self._critical_trans = critical_transaction
+        # BEFORE (t <= critical): FIFO so we can output oldest -> newest before the critical
+        self._before_critical = LinkedQueue()
+        # AFTER (t > critical):  LIFO so we can output newest -> oldest after the critical
+        self._after_critical = LinkedStack()
+        # Locking / single-iterator flags
+        self._it_created = False
+        self._line_fixed = False
 
     def __iter__(self):
         """
-        Analyse your time complexity of this method.
+        :complexity:
+            Best & Worst: O(1) – set flags and return iterator.
         """
         if self._it_created:
-            raise Exception("Only one iterator can be created at a time.")
-        self._it_created=True 
-        if    
+            raise RuntimeError("Only one iterator can be created.")
+        self._it_created = True
+        self._line_fixed = True
+        return ProcessingLineIterator(self)
 
     def add_transaction(self, transaction):
         """
-        Analyse your time complexity of this method.
+        :complexity:
+            Best & Worst: O(1) – one append or one push.
         """
-        pass
+        if self._line_fixed:
+            raise RuntimeError("Iteration has started; no more transactions can be added.")
+        if transaction.timestamp <= self._critical_trans.timestamp:
+            self._before_critical.append(transaction)  # enqueue to BEFORE (FIFO)
+        else:
+            self._after_critical.push(transaction)     # push to AFTER (LIFO)
+
 
 class ProcessingLineIterator:
     def __init__(self, line: ProcessingLine):
         """
-        Analyse your time complexity of this method.
+        :complexity:
+            Best & Worst: O(1) – store references and set stage.
         """
-        self._before_critical=line._before_critical
-        self._after_critical=line._after_critical
-        self._critical_=line._critical_trans
-        self.stage=0
+        self._before_critical = line._before_critical   # LinkedQueue
+        self._after_critical  = line._after_critical    # LinkedStack
+        self._critical_       = line._critical_trans
+        self._stage = 0  # 0 = before, 1 = critical, 2 = after, 3 = done
 
     def __iter__(self):
+        """
+        :complexity:
+            Best & Worst: O(1)
+        """
         return self
 
-    def __next__(self):  
+    def __next__(self):
         """
-        Return the next transaction in the correct order and sign it if needed.
+        Return the next transaction in the required order;
+        The order is:
+          1) oldest -> newest (FIFO) BEFORE the critical
+          2) critical (once)
+          3) newest -> oldest (LIFO) AFTER the critical
         :raises StopIteration: when all transactions have been processed.
         :complexity:
-            Best: O(1) for returning a transaction from either the before-queue or after-stack, or the critical one.
-            Worst: O(1) per call, so overall O(N) for N total transactions in the line, since each
-                transaction is signed and returned exactly once.
+            Best: O(1) – one queue serve / one stack pop / or the critical.
+            Worst: O(1) per call; overall O(N) across the full traversal.
         """
-        #  Stage 0: before_critical group, oldest -> newest
+
         if self._stage == 0:
             if not self._before_critical.is_empty():
                 tx = self._before_critical.serve()
@@ -99,7 +126,7 @@ class ProcessingLineIterator:
                 return tx
             self._stage = 1  
 
-        # Stage 1: critical (exactly once)
+    
         if self._stage == 1:
             self._stage = 2
             tx = self._critical_
@@ -107,17 +134,17 @@ class ProcessingLineIterator:
                 tx.sign()
             return tx
 
-        # Stage 2: after_critical group, newest -> oldest
+
         if self._stage == 2:
             if not self._after_critical.is_empty():
                 tx = self._after_critical.pop()
                 if tx.signature is None:
                     tx.sign()
                 return tx
-            self._stage = 3
+            self._stage = 3  
 
-        # Stage 3: DONE
-        raise StopIteration    
+
+        raise StopIteration
 
 
         
