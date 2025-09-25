@@ -6,8 +6,18 @@ from processing_line import Transaction
 class ProcessingBook:
     LEGAL_CHARACTERS = "abcdefghijklmnopqrstuvwxyz0123456789"
 
-    def __init__(self):
+    def __init__(self, current_level=0, root_book=None):
+        # make 36 pages for this book
         self.pages = ArrayR(len(ProcessingBook.LEGAL_CHARACTERS))
+        self.current_level = current_level
+
+        # the very first book (root) keeps global counters
+        if root_book is None:
+            self._root = self
+            self.total_transactions = 0
+            self.total_errors = 0
+        else:
+            self._root = root_book
     
     def page_index(self, character):
         """
@@ -15,6 +25,17 @@ class ProcessingBook:
         Time complexity of this method is O(1), because it always only checks 36 characters.
         """
         return ProcessingBook.LEGAL_CHARACTERS.index(character)
+
+    
+    def __setitem__():
+        pass
+
+    def __getitem__():
+        pass
+
+    def _move_leaf_without_count():
+        pass
+
     
     def get_error_count(self):
         """
@@ -25,6 +46,14 @@ class ProcessingBook:
     def __len__(self):
         pass
     
+
+
+
+
+
+
+
+
     def sample(self, required_size):
         """
         1054 Only - 1008/2085 welcome to attempt if you're up for a challenge, but no marks are allocated.
