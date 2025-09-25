@@ -155,11 +155,47 @@ class ProcessingBook:
         """
         return self._root.total_transactions
     
+    
+    # task 2.2 
+    def __delitem__(self, one_transaction: Transaction):    
+        """
+        Delete a transaction. Collapse child book if only 1 left.
+        :complexity:
+        """
+        pass
+    
+    def _get_only_leaf(self):
+        """
+        Find the one remaining leaf in this book (used for collapse).
+        :complexity:
+        """
+        pass
 
 
+    # task 2.3
+    def __iter__(self):
+        """
+        Return an iterator over all (transaction, amount) pairs in alphabetical order.
+        :complexity:
+            
+        """
+        pass
 
+    def __next__(self):
+        """
+        Return the next (transaction, amount) pair during iteration.
+        :complexity:
+            
+        """
+        pass
 
-
+     def _collect_items(self, book):
+        """
+        collect all (transaction, amount) pairs recursively in page order.
+        :complexity:
+            
+        """
+        pass
 
 
 
