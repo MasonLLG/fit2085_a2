@@ -2,6 +2,8 @@ from data_structures import ArrayR
 
 from processing_line import Transaction
 
+from data_structures.linked_stack import LinkedStack
+
 
 class ProcessingBook:
     LEGAL_CHARACTERS = "abcdefghijklmnopqrstuvwxyz0123456789"
@@ -223,49 +225,64 @@ class ProcessingBook:
 
     # task 2.3
     def __iter__(self):
+        """ 
+        :complexity
+        Best: O(1) if first leaf is near the start.
+        Worst: O(L) if it has to descend down several nested books to reach the first leaf.
+        Overall: O(L) worst-case setup.
         """
-        Return an iterator over all (transaction, amount) pairs in alphabetical order.
-        :complexity:
-            Best: O(1), just sets up iteration state.
-            Worst: O(1), same.
-        """
-        self._iter_items = []
-        self._collect_items(self)
-        self._iter_index = 0
+        self._stack = LinkedStack()
+        self._stack.push((self,0))   # tuple = (book, index)
+        self._next_item = None
+        self._advance()   # move to first leaf
         return self
-
 
     def __next__(self):
         """
-        Return the next (transaction, amount) pair during iteration.
-        :complexity:
-            Best: O(1), each call just returns the next item.
-            Worst: O(1), same.
+        :complexity
+        Returning the result is O(1)
         """
-        if self._iter_index < len(self._iter_items):
-            item = self._iter_items[self._iter_index]
-            self._iter_index += 1
-            return item
-        else:
+        if self._next_item is None:
             raise StopIteration
+        result = self._next_item
+        self._advance()
+        return result
 
-     def _collect_items(self, book):
+    def _advance(self):
         """
-        collect all (transaction, amount) pairs recursively in page order.
-        :complexity:
-            Best: O(N), visits each transaction once.
-            Worst: O(N), visits each transaction once.
-            N is the number of transactions stored.
+        :complexity
+        Amortized per call: O(1).
+        Across all N items: O(N).
         """
-        for i in range(len(ProcessingBook.LEGAL_CHARACTERS)):
+        LEGAL = ProcessingBook.LEGAL_CHARACTERS
+        L = len(LEGAL)
+        self._next_item = None
+
+        while len(self._stack) > 0:
+            book, i = self._stack.pop()
+
+            if i >= L:
+                # done with this book
+                continue
+
+            # push back with next index to try later
+            self._stack.push((book, i+1))
+
             page = book.pages[i]
             if page is None:
                 continue
+
             if isinstance(page, ProcessingBook):
-                self._collect_items(page)
-            else:
-                # page is a leaf (transaction, amount)
-                self._iter_items.append(page)
+                # go deeper
+                self._stack.push((page,0))
+                continue
+
+            # found a leaf
+            self._next_item = page
+            return
+
+        # nothing left
+        self._next_item = None
 
 
 
@@ -333,3 +350,39 @@ if __name__ == "__main__":
     # Let's make sure that actually happened. We should be able to find tr3 sitting
     # in Page A of the book:
     print(book.pages[book.page_index('a')])  # This should print whatever details we stored of T3 and only T3
+
+    # --- Clean collapse test for Task 2.2 ---
+
+    b = ProcessingBook()
+
+    x1 = Transaction(1, "s", "r"); x1.signature = "abc123"
+    x2 = Transaction(2, "s", "r"); x2.signature = "abcxyz"
+
+    b[x1] = 10
+    b[x2] = 20
+
+    # Both are under page 'a' -> nested book created
+    idx_a = b.page_index('a')
+    assert isinstance(b.pages[idx_a], ProcessingBook)
+
+    # Delete one; child now has exactly 1 item -> should collapse to a leaf tuple
+    del b[x1]
+
+    slot = b.pages[idx_a]
+    assert isinstance(slot, tuple), "Expected collapse to a leaf (transaction, amount) tuple"
+    tx, amt = slot
+    assert tx.signature == "abcxyz" and amt == 20
+    print("Task 2.2 collapse test passed")
+
+    # --- Iteration test for Task 2.3 ---
+    b = ProcessingBook()
+    t1 = Transaction(1,"s","r"); t1.signature = "a11111"
+    t2 = Transaction(2,"s","r"); t2.signature = "z22222"
+    b[t1] = 10
+    b[t2] = 20
+
+    for tx, amt in b:
+        print(tx.signature, amt)
+    # Output should be:
+    # a11111 10
+    # z22222 20
